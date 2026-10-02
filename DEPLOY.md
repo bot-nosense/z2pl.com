@@ -98,25 +98,25 @@ node scripts/export-csv.mjs feedback.json feedback.csv
 
 The CSV helper escapes values and mitigates spreadsheet formula injection. It refuses to overwrite an existing export or write into a directory named `public`. Keep the exports private and delete local copies when no longer needed.
 
-## Owner email notifications
+## Owner email notifications — Cloudflare only
 
-Signup and feedback notifications are addressed to **info.bot.nosense@gmail.com** in `lib/notify.js`. Sending is enabled only when both `RESEND_API_KEY` and `RESEND_FROM` are set in the Pages environment. The recipient is server-controlled; form input cannot change it.
+Notifications go only to **info.bot.nosense@gmail.com**. Cloudflare documents sending to verified Email Routing destinations as free on all plans. This setup uses the Cloudflare REST API from Pages Functions; no extra email provider or separate Worker is needed. Pages Functions and D1 remain subject to their own usage limits.
 
-Create a Resend API key and verify your sending domain, then set `RESEND_FROM` to an address on that domain, such as `Z2PL <notifications@your-verified-domain>`. Store the API key as a Pages secret:
+Configure these in the Cloudflare dashboard:
 
-```sh
-npx wrangler pages secret put RESEND_API_KEY --project-name z2pl-landing
-```
+1. In Email Service → Email Routing → Destination Addresses, add **info.bot.nosense@gmail.com** and click the verification link sent to that Gmail inbox.
+2. Configure your sending domain with Cloudflare Email Service. Use an address on that domain for `CF_EMAIL_FROM` (for example, `notifications@z2pl.com` after domain setup).
+3. In the Pages project's environment variables, set `CF_EMAIL_ACCOUNT_ID` to your Cloudflare account ID and `CF_EMAIL_FROM` to the sender address.
+4. Add `CF_EMAIL_API_TOKEN` as a secret, using a Cloudflare API token with permission to send email for that account. Keep it out of Git and frontend files.
+5. Redeploy. Also finish the D1 and Turnstile setup above; hosting the page alone does not enable form submissions.
 
-Redeploy after setting the environment values. The API sends a plain-text notification only after Turnstile verification and successful database storage. Feedback can be anonymous; a supplied email becomes the reply-to address. Notifications do not send email to visitors or subscribe reply-only feedback to marketing.
+The recipient is fixed in `lib/notify.js`; form input cannot change it. Email is attempted only after verification and database storage. Notifications are best effort, with no automatic retry queue or email deduplication guarantee. Failures log a generic message without personal data, and submissions remain stored in D1. Verify an actual submission reaches the inbox before relying on email.
 
-Email notifications are best effort. Failed delivery logs a generic message without submission content; saved submissions remain in D1 for manual follow-up. There is no automatic delivery retry queue. Repeating the same submission uses a stable Resend idempotency key, which prevents duplicate email within Resend's 24-hour window. Verify an actual submission reaches the inbox before relying on notifications.
-
-Official references: [Send Email](https://resend.com/docs/api-reference/emails/send-email), [Idempotency Keys](https://resend.com/docs/dashboard/emails/idempotency-keys).
+Official references: [Free verified destinations](https://developers.cloudflare.com/email-service/platform/pricing/), [Destination verification](https://developers.cloudflare.com/email-service/configuration/email-routing-addresses/), [REST API](https://developers.cloudflare.com/email-service/api/send-emails/rest-api/).
 
 ## Operating boundaries
 
-- This stores expressions of interest and feedback and optionally emails the owner when Resend is configured. It does **not** send campaigns, verify email ownership, provide double opt-in, automatically unsubscribe/delete, or include an admin dashboard.
+- This stores expressions of interest and feedback and optionally emails the owner through Cloudflare Email Service when configured. It does **not** send campaigns, verify email ownership, provide double opt-in, automatically unsubscribe/delete, or include an admin dashboard.
 - Before sending a campaign, connect an email platform with the needed verification and unsubscribe workflow. Do not treat unverified submissions as authenticated accounts.
 - Feedback email is not marketing consent. Only `subscribers` records reflect explicit launch-update opt-in. The schema records consent version, creation time and source.
 - Handle removal requests manually with appropriate ownership verification. Review the on-page data information against your actual process and retention policy.

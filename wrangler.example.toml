@@ -5,8 +5,9 @@ compatibility_date = "2026-09-30"
 
 [vars]
 ALLOWED_ORIGIN = "https://YOUR-LANDING-HOSTNAME"
-# Optional owner notifications: use an address on a Resend-verified domain.
-# RESEND_FROM = "Z2PL <notifications@YOUR-VERIFIED-DOMAIN>"
+# Optional Cloudflare owner notifications; verify the Gmail destination first.
+# CF_EMAIL_ACCOUNT_ID = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+# CF_EMAIL_FROM = "notifications@YOUR-EMAIL-SERVICE-DOMAIN"
 
 [[d1_databases]]
 binding = "DB"
@@ -17,4 +18,4 @@ migrations_dir = "migrations"
 # Secrets: configure through Wrangler or Pages dashboard, NEVER in this file.
 # TURNSTILE_SECRET_KEY
 # IP_HASH_KEY (at least 32 random characters)
-# RESEND_API_KEY (optional; owner notifications go to info.bot.nosense@gmail.com)
+# CF_EMAIL_API_TOKEN (optional; permission to send email in the selected account)
