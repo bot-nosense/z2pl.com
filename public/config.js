@@ -5,5 +5,5 @@ window.Z2PL_CONFIG = Object.freeze({
   previewMode: false,
   apiEndpoint: "/api/interest",
   // Cloudflare Turnstile PUBLIC site key. Secret lives in Pages environment.
-  turnstileSiteKey: "",
+  turnstileSiteKey: "0x4AAAAAAFLpWKRAztAP6Tw0",
 });
