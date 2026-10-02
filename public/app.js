@@ -11,7 +11,6 @@
   let turnstileLoader;
 
   $("#copyright-year").textContent = String(new Date().getFullYear());
-  $$("[data-preview]").forEach((element) => { element.hidden = !preview; });
 
   function announce(kind, state, title, description) {
     const target = $(`#${kind}-status`);
@@ -156,11 +155,11 @@
     if (form.getAttribute("aria-busy") === "true") return;
     if (!validate(kind, form)) return;
     if (preview) {
-      announce(kind, "preview", "Preview only — nothing was sent.", "This form isn’t connected yet. Your email and feedback have not been sent or stored. The included backend enables real submissions after setup.");
+      announce(kind, "preview", "Submissions unavailable — nothing was sent.", "Submissions are not available yet. Your email and feedback have not been sent or saved. Please check back later.");
       return;
     }
     if (!config.apiEndpoint || !config.turnstileSiteKey) {
-      announce(kind, "error", "This form isn’t connected yet.", "Please try again later. Your information has not been sent.");
+      announce(kind, "error", "Submissions are temporarily unavailable.", "Please try again later. Your information has not been sent.");
       return;
     }
     let endpoint;
@@ -168,7 +167,7 @@
       endpoint = new URL(config.apiEndpoint, location.href);
       if (endpoint.origin !== location.origin) throw new Error("Unexpected endpoint origin.");
     } catch {
-      announce(kind, "error", "This form isn’t connected yet.", "The collection endpoint needs to be configured on this website.");
+      announce(kind, "error", "Submissions are temporarily unavailable.", "Please try again later. Your information has not been sent.");
       return;
     }
     const payload = getPayload(kind, form);
