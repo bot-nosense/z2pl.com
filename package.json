@@ -1,0 +1,11 @@
+{
+  "name": "z2pl-landing",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/api.test.mjs",
+    "preview": "python3 -m http.server 8080 --directory public"
+  },
+  "engines": { "node": ">=22" }
+}
