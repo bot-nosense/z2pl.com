@@ -5,6 +5,8 @@ compatibility_date = "2026-09-30"
 
 [vars]
 ALLOWED_ORIGIN = "https://YOUR-LANDING-HOSTNAME"
+# Optional owner notifications: use an address on a Resend-verified domain.
+# RESEND_FROM = "Z2PL <notifications@YOUR-VERIFIED-DOMAIN>"
 
 [[d1_databases]]
 binding = "DB"
@@ -15,3 +17,4 @@ migrations_dir = "migrations"
 # Secrets: configure through Wrangler or Pages dashboard, NEVER in this file.
 # TURNSTILE_SECRET_KEY
 # IP_HASH_KEY (at least 32 random characters)
+# RESEND_API_KEY (optional; owner notifications go to info.bot.nosense@gmail.com)

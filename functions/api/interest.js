@@ -3,6 +3,8 @@
  * No dependencies, no raw IP logging, no unauthenticated subscriber listing.
  * All critical bindings are mandatory: fail closed, never fake a saved response.
  */
+import { notifyOwner } from "../../lib/notify.js";
+
 const LIMIT_BYTES = 16384;
 const WINDOW_MS = 10 * 60 * 1000;
 const WINDOW_LIMIT = 20;
@@ -148,6 +150,12 @@ export async function onRequest({ request, env, waitUntil }) {
     // D1 batch executes transactionally. No success before storage succeeds.
     const results = await env.DB.batch(writes);
     if (!results.length || results.some((result) => !result.success)) return error(503, "STORAGE_UNAVAILABLE");
+    // Email is an owner notification, not the storage acknowledgment. A mail
+    // outage must not undo saved data or expose provider errors to visitors.
+    const notification = notifyOwner(env, data).catch(() => {
+      console.error("Z2PL owner notification failed; submission remains saved.");
+    });
+    if (waitUntil) waitUntil(notification); else await notification;
     return reply(200, { ok: true, status: "saved" });
   } catch {
     // Do not log email, messages, tokens, request headers or raw IPs.

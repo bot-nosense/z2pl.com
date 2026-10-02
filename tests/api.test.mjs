@@ -189,4 +189,97 @@ test('API contract and fail-closed handling', async (t) => {
     const bindings = env(); bindings.DB.fail = true;
     assert.equal((await onRequest({ request: request(sample()), env: bindings })).status, 503);
   });
+  await t.test('emails verified saved submissions to the owner, never to form-selected recipients', async () => {
+    const mail = [];
+    globalThis.fetch = async (url, options) => {
+      if (url.includes('siteverify')) return Response.json({ success: true, action: 'waitlist', hostname: 'landing.example.test' });
+      assert.equal(url, 'https://api.resend.com/emails');
+      mail.push({ headers: options.headers, body: JSON.parse(options.body) });
+      return Response.json({ id: 'test-mail-id' });
+    };
+    const bindings = { ...env(), RESEND_API_KEY: 'test-mail-secret', RESEND_FROM: 'Z2PL <notifications@example.test>' };
+    const body = sample({ to: 'attacker@example.test' });
+    const response = await onRequest({ request: request(body), env: bindings });
+    assert.equal(response.status, 200);
+    assert.equal(bindings.DB.subscribers.size, 1);
+    assert.equal(mail.length, 1);
+    assert.deepEqual(mail[0].body.to, ['info.bot.nosense@gmail.com']);
+    assert.equal(mail[0].body.from, bindings.RESEND_FROM);
+    assert.equal(mail[0].body.reply_to, 'person@example.com');
+    assert.equal(mail[0].headers.Authorization, 'Bearer test-mail-secret');
+    assert.equal(mail[0].body.subject, '[Z2PL] New waitlist signup');
+    assert.ok(mail[0].body.text.includes('Launch updates: Opted in'));
+    assert.ok(!JSON.stringify(mail[0].body).includes('test-token'));
+    assert.ok(!JSON.stringify(mail[0].body).includes('192.0.2.1'));
+    await onRequest({ request: request(body), env: bindings });
+    assert.equal(mail[0].headers['Idempotency-Key'], mail[1].headers['Idempotency-Key']);
+    assert.deepEqual(mail[0].body, mail[1].body);
+  });
+  await t.test('anonymous feedback notification preserves text and has no reply-to or marketing opt-in', async () => {
+    let message;
+    globalThis.fetch = async (url, options) => {
+      if (url.includes('siteverify')) return Response.json({ success: true, action: 'feedback', hostname: 'landing.example.test' });
+      message = JSON.parse(options.body);
+      return Response.json({ id: 'test-feedback-mail' });
+    };
+    const bindings = { ...env(), RESEND_API_KEY: 'test-mail-secret', RESEND_FROM: 'notifications@example.test' };
+    const body = sample({ kind: 'feedback', topic: 'idea', message: '<script>example</script>\nAnother line.', email: '', updates: false, consent: false });
+    const pending = [];
+    const response = await onRequest({ request: request(body), env: bindings, waitUntil: (promise) => pending.push(promise) });
+    await Promise.all(pending);
+    assert.equal(response.status, 200);
+    assert.equal(bindings.DB.feedback.size, 1);
+    assert.equal(bindings.DB.subscribers.size, 0);
+    assert.equal(message.subject, '[Z2PL] New feedback');
+    assert.equal(message.reply_to, undefined);
+    assert.equal(message.html, undefined);
+    assert.ok(message.text.includes(body.message));
+    assert.ok(message.text.includes('Launch updates: Not opted in'));
+  });
+  await t.test('notifications are optional when mail configuration is missing', async () => {
+    let calls = 0;
+    globalThis.fetch = async (url) => {
+      assert.ok(url.includes('siteverify'));
+      calls++;
+      return Response.json({ success: true, action: 'waitlist', hostname: 'landing.example.test' });
+    };
+    for (const config of [{}, { RESEND_API_KEY: 'test-mail-secret' }, { RESEND_FROM: 'notifications@example.test' }]) {
+      assert.equal((await onRequest({ request: request(sample()), env: { ...env(), ...config } })).status, 200);
+    }
+    assert.equal(calls, 3);
+  });
+  await t.test('rejected or unsaved submissions never trigger notification email', async () => {
+    const bindings = { ...env(), RESEND_API_KEY: 'test-mail-secret', RESEND_FROM: 'notifications@example.test' };
+    globalThis.fetch = async (url) => {
+      assert.ok(url.includes('siteverify'));
+      return Response.json({ success: false });
+    };
+    assert.equal((await onRequest({ request: request(sample()), env: bindings })).status, 403);
+    globalThis.fetch = async () => { throw new Error('No fetch should occur'); };
+    bindings.DB.fail = true;
+    assert.equal((await onRequest({ request: request(sample()), env: bindings })).status, 503);
+  });
+  await t.test('mail failure keeps saved submissions and logs no personal data or provider details', async () => {
+    const originalError = console.error;
+    const logs = [];
+    console.error = (...args) => logs.push(args.join(' '));
+    try {
+      for (const failure of ['http', 'network', 'malformed']) {
+        const bindings = { ...env(), RESEND_API_KEY: 'test-mail-secret', RESEND_FROM: 'notifications@example.test' };
+        globalThis.fetch = async (url) => {
+          if (url.includes('siteverify')) return Response.json({ success: true, action: 'waitlist', hostname: 'landing.example.test' });
+          if (failure === 'network') throw new Error('person@example.com test-mail-secret');
+          if (failure === 'malformed') return Response.json({});
+          return Response.json({ error: 'person@example.com' }, { status: 503 });
+        };
+        const response = await onRequest({ request: request(sample()), env: bindings });
+        assert.deepEqual(await response.json(), { ok: true, status: 'saved' });
+        assert.equal(bindings.DB.subscribers.size, 1);
+      }
+      assert.equal(logs.length, 3);
+      assert.ok(logs.every((log) => log === 'Z2PL owner notification failed; submission remains saved.'));
+    } finally {
+      console.error = originalError;
+    }
+  });
 });

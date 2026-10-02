@@ -98,9 +98,25 @@ node scripts/export-csv.mjs feedback.json feedback.csv
 
 The CSV helper escapes values and mitigates spreadsheet formula injection. It refuses to overwrite an existing export or write into a directory named `public`. Keep the exports private and delete local copies when no longer needed.
 
+## Owner email notifications
+
+Signup and feedback notifications are addressed to **info.bot.nosense@gmail.com** in `lib/notify.js`. Sending is enabled only when both `RESEND_API_KEY` and `RESEND_FROM` are set in the Pages environment. The recipient is server-controlled; form input cannot change it.
+
+Create a Resend API key and verify your sending domain, then set `RESEND_FROM` to an address on that domain, such as `Z2PL <notifications@your-verified-domain>`. Store the API key as a Pages secret:
+
+```sh
+npx wrangler pages secret put RESEND_API_KEY --project-name z2pl-landing
+```
+
+Redeploy after setting the environment values. The API sends a plain-text notification only after Turnstile verification and successful database storage. Feedback can be anonymous; a supplied email becomes the reply-to address. Notifications do not send email to visitors or subscribe reply-only feedback to marketing.
+
+Email notifications are best effort. Failed delivery logs a generic message without submission content; saved submissions remain in D1 for manual follow-up. There is no automatic delivery retry queue. Repeating the same submission uses a stable Resend idempotency key, which prevents duplicate email within Resend's 24-hour window. Verify an actual submission reaches the inbox before relying on notifications.
+
+Official references: [Send Email](https://resend.com/docs/api-reference/emails/send-email), [Idempotency Keys](https://resend.com/docs/dashboard/emails/idempotency-keys).
+
 ## Operating boundaries
 
-- This stores expressions of interest and feedback. It does **not** send emails, verify email ownership, provide double opt-in, automatically unsubscribe/delete, or include an admin dashboard.
+- This stores expressions of interest and feedback and optionally emails the owner when Resend is configured. It does **not** send campaigns, verify email ownership, provide double opt-in, automatically unsubscribe/delete, or include an admin dashboard.
 - Before sending a campaign, connect an email platform with the needed verification and unsubscribe workflow. Do not treat unverified submissions as authenticated accounts.
 - Feedback email is not marketing consent. Only `subscribers` records reflect explicit launch-update opt-in. The schema records consent version, creation time and source.
 - Handle removal requests manually with appropriate ownership verification. Review the on-page data information against your actual process and retention policy.
