@@ -1,4 +1,4 @@
-<!-- Product showcase, not the renderer source repository. -->
+<!-- GitHub product showcase and Cloudflare Pages landing page share this repository. -->
 <!-- Keep assets/readme/ beside this file. All visual assets are local. -->
 
 <p align="center">
@@ -159,7 +159,9 @@ A useful report includes the smallest ZPL sample that reproduces the issue, the 
 <details>
 <summary><strong>About this repository</strong></summary>
 
-This is the public product showcase for **Z2PL — Zero to Print Layer**. It contains product information, visual assets, example labels and feedback templates. It does **not** contain the rendering engine source code.
+This repository contains the GitHub product showcase for **Z2PL — Zero to Print Layer**, visual assets, example labels, feedback templates, and the landing page at <a href="https://waitlist.z2pl.com/">waitlist.z2pl.com</a>. Cloudflare Pages serves the <code>public/</code> directory; GitHub renders this README. It does **not** contain the rendering engine source code.
+
+<a href="./docs/development.md">Repository guide</a> · <a href="./docs/deployment.md">Landing page deployment</a>
 
 A public showcase repository does not imply an open-source release of the service or engine. See the website for current product access, documentation and terms.
 

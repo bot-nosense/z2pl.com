@@ -1,12 +1,14 @@
-# Enable real collection — Cloudflare Pages + D1
+# Landing page deployment
 
-The supplied HTML works offline, but a real signup requires a server and database. This guide configures the included backend; it does not connect to an existing production Z2PL conversion API.
+This repository contains both the GitHub product README and the landing page served at **https://waitlist.z2pl.com/**. Cloudflare Pages publishes only `public/`; Pages Functions are discovered from the root `functions/` directory and import the application code in `server/`. The renderer and main product website live elsewhere.
 
-**Do not change the existing Z2PL project, production origin, DNS or repository unless you intend to.** A separate Pages project is the least intrusive way to develop both sites in parallel. Choose the actual hostname yourself. No deployment or paid resource has been created for you.
+Use the existing Pages project for updates. For Git integration, set the repository root to `/`, production branch to `main`, no build command, and output directory to `public`. The project name `z2pl-landing` used in commands below is an example; use your actual Pages project name.
 
-## 1. Create a separate Pages project and database
+[Development and repository layout](development.md) · [README maintenance](readme-maintenance.md)
 
-Run commands from this package's root. You need Node.js, npm and authorization for your own Cloudflare account. Review any account limits or charges in your account before enabling resources.
+## 1. Initial setup only
+
+Skip resource creation if the project and database already exist. Run setup commands from the repository root using your Cloudflare account.
 
 ```sh
 npx wrangler login
@@ -57,7 +59,7 @@ In `public/config.js`:
 window.Z2PL_CONFIG = Object.freeze({
   previewMode: false,
   apiEndpoint: "/api/interest",
-  turnstileSiteKey: "YOUR_PUBLIC_TURNSTILE_SITE_KEY"
+  turnstileSiteKey: "YOUR_PUBLIC_TURNSTILE_SITE_KEY",
 });
 ```
 
@@ -69,7 +71,7 @@ npx wrangler pages deploy public --project-name z2pl-landing --branch main
 
 Use Wrangler or a correctly configured Git build for this `functions/` layout. Dashboard drag-and-drop does not compile a `functions` directory. Uploading only the HTML or the preview file does not create the collection backend.
 
-The `OPEN-PREVIEW.html` file is intentionally always a non-collecting preview. Do not deploy it as your production page.
+The generated `artifacts/preview.html` file is intentionally always a non-collecting preview. Do not deploy it as your production page.
 
 ## 5. Test the actual deployment before sharing
 
@@ -77,23 +79,25 @@ Use an email you control. Submit with consent and verify a row appears in `subsc
 
 Test the live security challenge. Failed/replayed tokens should be rejected. Check that a storage/configuration failure shows an error, not a success message, and preserves the form. Verify the final hostname, origin and Turnstile domain configuration after attaching a custom domain.
 
-The package tests mock Cloudflare services. They do not replace these deployment checks. Rate limits allow 20 validated-shape requests per client-IP-derived key per fixed 10-minute window; a shared office connection shares that allowance. Review this threshold for your audience.
+The local-only tests mock Cloudflare services and are excluded from Git. They do not replace these deployment checks. Rate limits allow 20 validated-shape requests per client-IP-derived key per fixed 10-minute window; a shared office connection shares that allowance. Review this threshold for your audience.
 
 ## 6. Read and export the private data
 
 Use D1 Console in your authenticated Cloudflare account, or export privately:
 
 ```sh
+mkdir -p private
+
 npx wrangler d1 execute z2pl-interest --remote --json \
   --command "SELECT email, created_at, consent_version, source FROM subscribers ORDER BY created_at DESC;" \
-  > subscribers.json
+  > private/subscribers.json
 
 npx wrangler d1 execute z2pl-interest --remote --json \
   --command "SELECT id, topic, message, email, created_at FROM feedback ORDER BY created_at DESC;" \
-  > feedback.json
+  > private/feedback.json
 
-node scripts/export-csv.mjs subscribers.json subscribers.csv
-node scripts/export-csv.mjs feedback.json feedback.csv
+node scripts/export-csv.mjs private/subscribers.json private/subscribers.csv
+node scripts/export-csv.mjs private/feedback.json private/feedback.csv
 ```
 
 The CSV helper escapes values and mitigates spreadsheet formula injection. It refuses to overwrite an existing export or write into a directory named `public`. Keep the exports private and delete local copies when no longer needed.
@@ -110,7 +114,7 @@ Configure these in the Cloudflare dashboard:
 4. Add `CF_EMAIL_API_TOKEN` as a secret, using a Cloudflare API token with permission to send email for that account. Keep it out of Git and frontend files.
 5. Redeploy. Also finish the D1 and Turnstile setup above; hosting the page alone does not enable form submissions.
 
-The recipient is fixed in `lib/notify.js`; form input cannot change it. Email is attempted only after verification and database storage. Notifications are best effort, with no automatic retry queue or email deduplication guarantee. Failures log a generic message without personal data, and submissions remain stored in D1. Verify an actual submission reaches the inbox before relying on email.
+The recipient is fixed in `server/notify.js`; form input cannot change it. Email is attempted only after verification and database storage. Notifications are best effort, with no automatic retry queue or email deduplication guarantee. Failures log a generic message without personal data, and submissions remain stored in D1. Verify an actual submission reaches the inbox before relying on email.
 
 Official references: [Free verified destinations](https://developers.cloudflare.com/email-service/platform/pricing/), [Destination verification](https://developers.cloudflare.com/email-service/configuration/email-routing-addresses/), [REST API](https://developers.cloudflare.com/email-service/api/send-emails/rest-api/).
 

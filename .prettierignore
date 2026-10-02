@@ -1,0 +1,11 @@
+artifacts/
+assets/
+public/assets/
+docs/archive/
+tests/
+coverage/
+playwright-report/
+test-results/
+migrations/
+package-lock.json
+private/

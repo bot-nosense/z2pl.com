@@ -1,0 +1,40 @@
+name: Rendering report
+description: Report a ZPL rendering difference using a small synthetic example.
+title: "[Rendering] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Remove customer names, addresses, tracking identifiers, credentials and other sensitive data. This report will be public.
+  - type: textarea
+    id: zpl
+    attributes:
+      label: Minimal ZPL example
+      description: Paste the smallest synthetic sample that reproduces the difference.
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: output
+    attributes:
+      label: Output format
+      options:
+        - PDF
+        - SVG
+        - PNG
+    validations:
+      required: true
+  - type: input
+    id: settings
+    attributes:
+      label: Dimensions and DPI
+      description: Include the conversion dimensions, DPI and relevant font settings.
+    validations:
+      required: true
+  - type: textarea
+    id: difference
+    attributes:
+      label: Expected and actual result
+      description: Describe the difference. Include synthetic screenshots or printer details when relevant.
+    validations:
+      required: true

@@ -1,0 +1,31 @@
+# Generated previews and QA captures
+/artifacts/
+
+# Local tests, reports and historical handoff notes
+/tests/
+/docs/archive/
+/coverage/
+/playwright-report/
+/test-results/
+/.pytest_cache/
+
+# Local tools and Cloudflare state
+/node_modules/
+/.wrangler/
+/wrangler.toml
+/.dev.vars
+/.dev.vars.*
+/.env
+/.env.*
+
+# Private database exports
+/private/
+/subscribers.json
+/subscribers.csv
+/feedback.json
+/feedback.csv
+
+# OS and Python caches
+.DS_Store
+__pycache__/
+*.pyc

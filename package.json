@@ -1,11 +1,19 @@
 {
-  "name": "z2pl-landing",
+  "name": "z2pl-site",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/api.test.mjs",
-    "preview": "python3 -m http.server 8080 --directory public"
+    "preview": "python3 -m http.server 8080 --directory public",
+    "preview:build": "node scripts/build-preview.mjs",
+    "format": "prettier --write --ignore-unknown .",
+    "format:check": "prettier --check --ignore-unknown .",
+    "check": "npm run format:check && node scripts/check.mjs"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "prettier": "3.9.9"
+  }
 }
